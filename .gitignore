@@ -1,0 +1,37 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Virtual environment
+.venv/
+venv/
+ENV/
+
+# ChromaDB local data (generated at runtime)
+chroma_data/
+stage_2_pipeline/starter/chroma_data/
+stage_2_pipeline/checkpoint/chroma_data/
+stage_3_exploration/starter/chroma_data/
+stage_3_exploration/checkpoint/chroma_data/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Ollama model cache (do not commit)
+*.gguf

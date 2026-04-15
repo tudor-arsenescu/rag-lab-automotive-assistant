@@ -1,0 +1,10 @@
+# Pinned versions for Liga AC LABS session — April 2026
+# These exact versions have been tested together to avoid conflicts.
+# If you encounter issues, see TROUBLESHOOTING.md.
+
+langchain==1.2.15
+langchain-ollama==1.1.0
+langchain-chroma==0.2.6
+langchain-community==0.3.25
+chromadb==1.5.7
+pypdf==6.10.0
