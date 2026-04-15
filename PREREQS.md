@@ -51,7 +51,7 @@ You should see both `nomic-embed-text` and `llama3.2:3b` in the output.
 Needed only if you want to clone this repo. Alternatively, download the repo as a ZIP from GitHub.
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/rag-lab-automotive-assistant.git
+git clone https://github.com/tudor-arsenescu/rag-lab-automotive-assistant.git
 cd rag-lab-automotive-assistant
 ```
 
