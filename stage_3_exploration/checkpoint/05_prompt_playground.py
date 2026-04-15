@@ -98,7 +98,7 @@ def load_store(chroma_path: str):
     return vectorstore
 
 
-def build_chain(vectorstore, prompt_template: str, top_k: int = 10, score_threshold: float = 0.8):
+def build_chain(vectorstore, prompt_template: str, top_k: int = 10, score_threshold: float = 0.3):
     """Build a retrieval chain with configurable prompt and parameters."""
     retriever = vectorstore.as_retriever(
         search_type="similarity_score_threshold",
@@ -151,7 +151,7 @@ def main():
 
     current_prompt = "default"
     current_top_k = 10
-    current_threshold = 0.8
+    current_threshold = 0.3
 
     while True:
         print(f"Current settings: prompt={current_prompt}, top_k={current_top_k}, threshold={current_threshold}")

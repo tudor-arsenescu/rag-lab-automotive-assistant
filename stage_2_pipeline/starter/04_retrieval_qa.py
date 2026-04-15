@@ -22,7 +22,7 @@ LANGUAGE_MODEL = "llama3.2:3b"
 
 # Retrieval parameters (mirrored from the production Java pipeline)
 RETRIEVER_TOP_K = 10
-RETRIEVER_SCORE_THRESHOLD = 0.8
+RETRIEVER_SCORE_THRESHOLD = 0.3
 
 # The prompt template used by the Java pipeline, adapted for LangChain
 PROMPT_TEMPLATE = """Based on the following context, answer the question. \

@@ -29,7 +29,7 @@ EMBEDDING_MODEL = "nomic-embed-text"
 LANGUAGE_MODEL = "llama3.2:3b"
 
 RETRIEVER_TOP_K = 10
-RETRIEVER_SCORE_THRESHOLD = 0.8
+RETRIEVER_SCORE_THRESHOLD = 0.3
 
 PROMPT_TEMPLATE = """Based on the following context, answer the question. \
 If the answer is not in the context, say 'I don't have enough information to answer that.'
