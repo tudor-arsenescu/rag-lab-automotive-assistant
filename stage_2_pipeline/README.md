@@ -108,6 +108,33 @@ Try these sample questions about the Porsche Taycan:
 - "How do I activate the lane keeping assistant?"
 - "What is the recommended tire pressure?"
 
+### Understanding the Metrics
+
+After each answer, the script displays performance metrics:
+
+```
+--- Metrics ---
+  Chunks retrieved : 7
+  Retrieval time   : 0.245s
+  Generation time  : 8.312s
+  Total time       : 8.557s
+```
+
+**What each metric means:**
+
+- **Chunks retrieved** — how many document chunks scored above the similarity threshold. More chunks give the model more context but also more noise. If this is 0, the threshold is too strict or the question is too far from the document content.
+- **Retrieval time** — time to embed your question into a vector and search ChromaDB for matching chunks. This is typically fast (under 1 second) because it's a single embedding call plus a vector similarity search.
+- **Generation time** — time for the LLM (llama3.2:3b) to read the retrieved context and produce an answer. This is usually the bottleneck, especially on CPU-only machines. Longer answers take more time.
+- **Total time** — end-to-end wall-clock time from question to answer. In the production automotive system, this is the metric that matters most — a driver waiting for an answer needs a response in seconds.
+
+**What to watch for:** If retrieval time is high, Ollama may be under memory pressure. If generation time is very high (>30s), your machine may not have enough RAM to comfortably run the 3B model — try closing other applications.
+
+The script also autodetects your ChromaDB store location. If you want to point it at a specific store, use `--chroma-path`:
+
+```bash
+python stage_2_pipeline/starter/04_retrieval_qa.py --chroma-path stage_2_pipeline/checkpoint/chroma_data
+```
+
 ## Falling Behind?
 
 If you can't complete a step in time, use the checkpoint code:

@@ -40,9 +40,12 @@ python stage_3_exploration/starter/05_prompt_playground.py
 **Things to try:**
 
 1. Ask the same question with the default prompt, then switch to a more specific prompt template
-2. Reduce `top_k` from 10 to 3 and see how answers change
+2. Reduce `top_k` from 10 to 3 and see how answers change — watch how retrieval time stays roughly the same but generation time drops (less context to process)
 3. Ask a question that is NOT in the document — does the model correctly say it doesn't know?
-4. If you have the VW ID.3 manual, ingest it and compare answers across both manuals
+4. Use the `compare` command to ask the same question with all 4 prompt templates side by side — observe how generation time varies with prompt complexity
+5. If you have the VW ID.3 manual, ingest it and compare answers across both manuals
+
+**Reading the metrics:** Each query displays chunks retrieved, retrieval time, generation time, and total time. Use these to observe how retrieval parameters (top_k, threshold) affect performance. See Stage 2's README for a detailed explanation of each metric.
 
 ### Step 2: Local vs. Cloud Discussion
 

@@ -7,10 +7,12 @@ Requires a populated ChromaDB store from Stage 2.
 
 Usage:
     python stage_3_exploration/starter/05_prompt_playground.py
+    python stage_3_exploration/starter/05_prompt_playground.py --chroma-path path/to/chroma_data
 """
 
 import os
 import sys
+import time
 
 from langchain_ollama import OllamaEmbeddings, OllamaLLM
 from langchain_chroma import Chroma
@@ -24,10 +26,11 @@ EMBEDDING_MODEL = "nomic-embed-text"
 LANGUAGE_MODEL = "llama3.2:3b"
 COLLECTION_NAME = "taycan_manual"
 
-# Try starter path first, fall back to checkpoint path
-CHROMA_PATHS = [
+# Candidate paths for autodetection (tried in order)
+CHROMA_CANDIDATE_PATHS = [
     os.path.join("stage_2_pipeline", "starter", "chroma_data"),
     os.path.join("stage_2_pipeline", "checkpoint", "chroma_data"),
+    "chroma_data",  # notebook root-level
 ]
 
 # --- Prompt Templates to Experiment With ---
@@ -77,12 +80,23 @@ Answer and confidence:""",
 }
 
 
-def find_chroma_path():
-    """Find the first available ChromaDB store path."""
-    for path in CHROMA_PATHS:
+def detect_chroma_path(explicit_path=None):
+    """Find the ChromaDB store: use explicit path if given, otherwise autodetect."""
+    if explicit_path:
+        if os.path.exists(explicit_path):
+            return explicit_path
+        print(f"ERROR: Specified ChromaDB path not found: '{explicit_path}'")
+        sys.exit(1)
+
+    for path in CHROMA_CANDIDATE_PATHS:
         if os.path.exists(path):
             return path
-    return None
+
+    print("ERROR: No ChromaDB store found. Searched:")
+    for path in CHROMA_CANDIDATE_PATHS:
+        print(f"  - {path}")
+    print("Complete Stage 2 first (run 03_embed_and_store.py).")
+    sys.exit(1)
 
 
 def load_store(chroma_path: str):
@@ -104,10 +118,15 @@ def load_store(chroma_path: str):
 
 
 def build_chain(vectorstore, prompt_template: str, top_k: int = 10, score_threshold: float = 0.3):
-    """Build a retrieval chain with configurable prompt and parameters."""
+    """Build a retrieval chain with configurable prompt and parameters.
+
+    Returns (chain, retriever) so we can measure retrieval and generation
+    times separately.
+    """
 
     # TODO: Build a retrieval chain (same pattern as Stage 2, Step 3)
     #       but use the provided prompt_template, top_k, and score_threshold
+    #       Return (chain, retriever) instead of just chain
     #
     # Hint:
     #   retriever = vectorstore.as_retriever(
@@ -122,9 +141,46 @@ def build_chain(vectorstore, prompt_template: str, top_k: int = 10, score_thresh
     #       | llm
     #       | StrOutputParser()
     #   )
-    #   return chain
+    #   return chain, retriever
 
     pass  # Replace this with your implementation
+
+
+def query_with_metrics(chain, retriever, question: str):
+    """Run a query and return the answer along with timing metrics.
+
+    Metrics returned:
+      - chunks_retrieved : how many document chunks matched the query
+      - retrieval_time_s : time to embed the question and search ChromaDB
+      - generation_time_s: time for the LLM to produce the answer
+      - total_time_s     : end-to-end wall-clock time
+    """
+    t0 = time.perf_counter()
+    retrieved_docs = retriever.invoke(question)
+    t_retrieval = time.perf_counter() - t0
+
+    t1 = time.perf_counter()
+    answer = chain.invoke(question)
+    t_total = time.perf_counter() - t1
+
+    t_generation = max(t_total - t_retrieval, 0.0)
+
+    metrics = {
+        "chunks_retrieved": len(retrieved_docs),
+        "retrieval_time_s": round(t_retrieval, 3),
+        "generation_time_s": round(t_generation, 3),
+        "total_time_s": round(t_total, 3),
+    }
+
+    return answer, metrics
+
+
+def print_metrics(metrics: dict):
+    """Print timing metrics in a readable format."""
+    print(f"  Chunks retrieved : {metrics['chunks_retrieved']}")
+    print(f"  Retrieval time   : {metrics['retrieval_time_s']:.3f}s")
+    print(f"  Generation time  : {metrics['generation_time_s']:.3f}s")
+    print(f"  Total time       : {metrics['total_time_s']:.3f}s")
 
 
 def main():
@@ -134,13 +190,14 @@ def main():
     print("=" * 60)
     print()
 
-    # Find and load store
-    chroma_path = find_chroma_path()
-    if chroma_path is None:
-        print("ERROR: No ChromaDB store found.")
-        print("Complete Stage 2 first (run 03_embed_and_store.py).")
-        sys.exit(1)
+    # Parse optional --chroma-path argument
+    explicit_path = None
+    if "--chroma-path" in sys.argv:
+        idx = sys.argv.index("--chroma-path")
+        if idx + 1 < len(sys.argv):
+            explicit_path = sys.argv[idx + 1]
 
+    chroma_path = detect_chroma_path(explicit_path)
     print(f"Using ChromaDB store at: {chroma_path}")
     vectorstore = load_store(chroma_path)
     if vectorstore is None:
@@ -154,7 +211,6 @@ def main():
         sys.exit(1)
     print()
 
-    # Menu
     current_prompt = "default"
     current_top_k = 10
     current_threshold = 0.3
@@ -208,14 +264,17 @@ def main():
             if not arg:
                 print("Usage: ask <your question>")
                 continue
-            chain = build_chain(vectorstore, PROMPTS[current_prompt], current_top_k, current_threshold)
-            if chain is None:
+            result = build_chain(vectorstore, PROMPTS[current_prompt], current_top_k, current_threshold)
+            if result is None:
                 print("ERROR: build_chain() returned None. Did you complete the TODO?")
                 continue
+            chain, retriever = result
             print("Thinking...")
             try:
-                answer = chain.invoke(arg)
+                answer, metrics = query_with_metrics(chain, retriever, arg)
                 print(f"\n[{current_prompt}] Bot: {answer}\n")
+                print("--- Metrics ---")
+                print_metrics(metrics)
             except Exception as e:
                 print(f"Error: {e}\n")
 
@@ -225,14 +284,19 @@ def main():
                 continue
             print(f"\nComparing all prompt templates for: '{arg}'\n")
             for name, template in PROMPTS.items():
-                chain = build_chain(vectorstore, template, current_top_k, current_threshold)
-                if chain is None:
+                result = build_chain(vectorstore, template, current_top_k, current_threshold)
+                if result is None:
                     print(f"[{name}] ERROR: build_chain() returned None.")
                     continue
+                chain, retriever = result
                 try:
-                    answer = chain.invoke(arg)
+                    answer, metrics = query_with_metrics(chain, retriever, arg)
                     print(f"[{name}]")
                     print(f"  {answer}")
+                    print(f"  --- Metrics: {metrics['chunks_retrieved']} chunks, "
+                          f"retrieval {metrics['retrieval_time_s']:.3f}s, "
+                          f"generation {metrics['generation_time_s']:.3f}s, "
+                          f"total {metrics['total_time_s']:.3f}s")
                     print()
                 except Exception as e:
                     print(f"[{name}] Error: {e}")
